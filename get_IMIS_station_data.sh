@@ -1,10 +1,10 @@
 stnlst="WFJ2 SLF2"
 mkdir -p ./download/
 
-curl -o ./download/stations.csv "https://measurement-data.slf.ch/imis/stations.csv"
+curl -s -C  - -o ./download/stations.csv "https://measurement-data.slf.ch/imis/stations.csv"
 for stnid in ${stnlst}
 do
-	curl -o ./download/${stnid}.csv https://measurement-data.slf.ch/imis/data/by_station/${stnid}.csv
+	curl -s -C  - -o ./download/${stnid}.csv https://measurement-data.slf.ch/imis/data/by_station/${stnid}.csv
 	col_stnid=$(head -1 ./download/stations.csv | awk -F, '{for(i=1; i<=NF; i++) {if($i=="station_code") {print i; exit}}}')
 	col_name=$(head -1 ./download/stations.csv | awk -F, '{for(i=1; i<=NF; i++) {if($i=="label") {print i; exit}}}')
 	col_lon=$(head -1 ./download/stations.csv | awk -F, '{for(i=1; i<=NF; i++) {if($i=="lon") {print i; exit}}}')
