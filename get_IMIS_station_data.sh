@@ -61,7 +61,9 @@ do
 	echo "CSV1_DATETIME_SPEC = YYYY-MM-DD HH24:MI:SS+00:00" >> ${inifile}
 	echo "CSV1_DELIMITER  = ," >> ${inifile}
 	echo "CSV1_NODATA     = -999" >> ${inifile}
-	echo "CSV1_FIELDS	= " $(head -1 ./download/${stnid}.csv | awk -F, -f parse_fields.awk) >> ${inifile}
+	echo "CSV1_FIELDS		= " $(head -1 ./download/${stnid}.csv | awk -F, -v what="n" -f parse_fields.awk) >> ${inifile}
+	echo "CSV1_UNITS_OFFSET		= " $(head -1 ./download/${stnid}.csv | awk -F, -v what="o" -f parse_fields.awk) >> ${inifile}
+	echo "CSV1_UNITS_MULTIPLIER	= " $(head -1 ./download/${stnid}.csv | awk -F, -v what="m" -f parse_fields.awk) >> ${inifile}
 	echo "[OUTPUT]" >> ${inifile}
 	echo "COORDSYS = CH1903" >> ${inifile}
 	echo "COORDPARAM = NULL" >> ${inifile}
