@@ -148,5 +148,5 @@ do
 		# when the previous season finished successfully
 		echo -n "snowpack -s ${stnid} -c ${inifile} -b ${startTime} -e ${endTime} > log/${stnid}_${yr}.log 2>&1 && " >> to_exec.lst
 	done
-	echo "echo" >> to_exec.lst
+	echo "echo ${stnid} finished." >> to_exec.lst
 done
