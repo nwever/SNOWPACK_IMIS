@@ -60,9 +60,14 @@ function WriteIniFile {
 	fi
 }
 
+> to_exec.lst
 for smetfile in ./smet/*
 do
 	stnid=$(grep -m1 station_id ${smetfile} | awk -F= '{gsub(/^[ \t]+/,"", $NF); print $NF}')
+	if (( $(awk '{if($1=="'${stnid}'") {print $5!="SNOW_FLAT"}}' station_meta.txt) )); then
+		echo "${stnid} is not a SNOW_FLAT station"
+		continue
+	fi
 	echo Preparing SNOWPACK setup for: ${stnid}
 	inifile="./cfgfiles/io_${stnid}.ini"
 	logfile="./log/${stnid}.log"
@@ -87,4 +92,6 @@ do
 		WriteSnoFile
 	done
 	WriteIniFile
+
+	echo "snowpack -c ${inifile} -b ${profiledate} -e NOW > log/${stnid}.log 2>&1" >> to_exec.lst
 done
