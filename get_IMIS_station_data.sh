@@ -16,6 +16,14 @@ do
 	longitude=$(awk -F, -v c=${col_stnid} -v s="${stnid}" -v r=${col_lon} '{if($c==s) {print $r; exit}}' ./download/stations.csv)
 	altitude=$(awk -F, -v c=${col_stnid} -v s="${stnid}" -v r=${col_elev} '{if($c==s) {print $r; exit}}' ./download/stations.csv)
 
+	col_date=$(head -1 ./download/${stnid}.csv | awk -F, '{for(i=1; i<=NF; i++) {if($i=="measure_date") {print i; exit}}}')
+	if [ "${stnid}" == "WFJ2" ]; then
+		startTime="1999-08-04T11:00:00"
+	else
+		startTime=$(awk -F, -v r=${col_date} '(NR==2) {print substr($r,1,10) "T" substr($r,12,8); exit}' ./download/${stnid}.csv)
+	fi
+	endTime=$(tail -1 ./download/${stnid}.csv | awk -F, -v r=${col_date} '{print substr($r,1,10) "T" substr($r,12,8); exit}')
+
 	inifile="./download/io.ini"
 	echo "[INPUT]" > ${inifile}
 	echo "COORDSYS = CH1903" >> ${inifile}
@@ -39,7 +47,7 @@ do
 	echo "METEO = SMET" >> ${inifile}
 	echo "METEOPATH = ./smet/" >> ${inifile}
 	
-	meteoio_timeseries -c ./download/io.ini -b 1996-01-01 -e NOW
+	meteoio_timeseries -c ./download/io.ini -b ${startTime} -e ${endTime}
 	
 	rm ./download/io.ini
 done
