@@ -53,6 +53,26 @@ function WriteIniFile {
 	echo "IMPORT_BEFORE		= ./io_base.ini" > ${inifile}
 	echo "[INPUT]" >> ${inifile}
 	echo "STATION1			= ${stnid}" >> ${inifile}
+	# Settings to include the drift wind station
+	if [ ! -z ${drift_station_code} ]; then
+		# Insert the drift wind station
+		echo "STATION2			= ${drift_station_code}" >> ${inifile}
+		echo "[InputEditing]" >> ${inifile}
+		echo "${drift_station_code}::edit1         = KEEP" >> ${inifile}
+		echo "${drift_station_code}::arg1::params  = VW" >> ${inifile}
+		echo "${drift_station_code}::edit2         = RENAME" >> ${inifile}
+		echo "${drift_station_code}::arg2::src	   = VW" >> ${inifile}
+		echo "${drift_station_code}::arg2::dest    = VW_DRIFT" >> ${inifile}
+		echo "${stnid}::edit10                     = MERGE" >> ${inifile}
+		echo "${stnid}::arg10::merge               = ${drift_station_code}" >> ${inifile}
+		echo "${stnid}::arg10::merge_strategy      = FULL_MERGE" >> ${inifile}
+		echo "${stnid}::arg10::params              = VW_DRIFT" >> ${inifile}
+		# Set a MULT filter for the wind scaling factor
+		echo "[Filters]" >> ${inifile}
+		echo "VW_DRIFT::filter99                   = MULT" >> ${inifile}
+		echo "VW_DRIFT::arg99::type                = CST" >> ${inifile}
+		echo "VW_DRIFT::arg99::cst                 = ${wind_scaling_factor}" >> ${inifile}
+	fi
 	if (( ${soil} )); then
 		echo "[SNOWPACK]" >> ${inifile}
 		echo "SNP_SOIL = TRUE" >> ${inifile}
@@ -78,6 +98,18 @@ do
 	altitude=$(grep -m1 altitude ${smetfile} | awk -F= '{gsub(/^[ \t]+/,"", $NF); print $NF}')
 	profiledate=$(awk '{if(/\[DATA\]/) {getline; gsub(/^[ \t]+/,"", $1); print $1; exit}}' ${smetfile})
 
+	# Setup drift wind station
+	drift_station_code=$(awk '{if($1=="'${stnid}'") {print $7}}' station_meta.txt)
+	wind_scaling_factor=$(awk '{if($1=="'${stnid}'") {print $8}}' station_meta.txt)
+	if [ "${drift_station_code}" == "null" ]; then
+		drift_station_code=""
+	else
+		if [ ! -e "./smet/${drift_station_code}.smet" ]; then
+			echo "WARNING: data for drift wind station not found (${drift_station_code}.smet)!"
+			drift_station_code=""
+		fi
+	fi
+
 	# Flat field
 	SlopeAngle=0
 	SlopeAzi=0
@@ -93,5 +125,5 @@ do
 	done
 	WriteIniFile
 
-	echo "snowpack -c ${inifile} -b ${profiledate} -e NOW > log/${stnid}.log 2>&1" >> to_exec.lst
+	echo "snowpack -s ${stnid} -c ${inifile} -b ${profiledate} -e NOW > log/${stnid}.log 2>&1" >> to_exec.lst
 done
