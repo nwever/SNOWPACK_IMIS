@@ -1,20 +1,31 @@
-stnlst="WFJ2 SLF2"
+stnlst="WFJ2 SLF2"	# Leave empty to download all available stations listed in stations.csv
 mkdir -p ./download/
 
 curl -s -C  - -o ./download/stations.csv "https://measurement-data.slf.ch/imis/stations.csv"
+sed -E 's/"([^"]*), ([^"]*)"/"\1__\2"/g' ./download/stations.csv > ./download/stations.csv.mod
+
+col_stnid=$(head -1 ./download/stations.csv.mod | awk -F, '{for(i=1; i<=NF; i++) {if($i=="station_code") {print i; exit}}}')
+col_name=$(head -1 ./download/stations.csv.mod | awk -F, '{for(i=1; i<=NF; i++) {if($i=="label") {print i; exit}}}')
+col_lon=$(head -1 ./download/stations.csv.mod | awk -F, '{for(i=1; i<=NF; i++) {if($i=="lon") {print i; exit}}}')
+col_lat=$(head -1 ./download/stations.csv.mod | awk -F, '{for(i=1; i<=NF; i++) {if($i=="lat") {print i; exit}}}')
+col_elev=$(head -1 ./download/stations.csv.mod | awk -F, '{for(i=1; i<=NF; i++) {if($i=="elevation") {print i; exit}}}')
+
+if [ -z "${stnlst}" ]; then
+	stnlst=$(awk -F, -v c=${col_stnid} '(NR>1) {if(NR>2) {printf " "}; printf "%s", $c}' ./download/stations.csv.mod)
+fi
+
 for stnid in ${stnlst}
 do
-	curl -s -C  - -o ./download/${stnid}.csv https://measurement-data.slf.ch/imis/data/by_station/${stnid}.csv
-	col_stnid=$(head -1 ./download/stations.csv | awk -F, '{for(i=1; i<=NF; i++) {if($i=="station_code") {print i; exit}}}')
-	col_name=$(head -1 ./download/stations.csv | awk -F, '{for(i=1; i<=NF; i++) {if($i=="label") {print i; exit}}}')
-	col_lon=$(head -1 ./download/stations.csv | awk -F, '{for(i=1; i<=NF; i++) {if($i=="lon") {print i; exit}}}')
-	col_lat=$(head -1 ./download/stations.csv | awk -F, '{for(i=1; i<=NF; i++) {if($i=="lat") {print i; exit}}}')
-	col_elev=$(head -1 ./download/stations.csv | awk -F, '{for(i=1; i<=NF; i++) {if($i=="elevation") {print i; exit}}}')
+	curl -f -s -C  - -o ./download/${stnid}.csv https://measurement-data.slf.ch/imis/data/by_station/${stnid}.csv
+	if [ ! -e "./download/${stnid}.csv" ]; then
+		echo "Downloading ${stnid}.csv failed..."
+		continue
+	fi
 
-	stnname=$(awk -F, -v c=${col_stnid} -v s="${stnid}" -v r=${col_name} '{if($c==s) {print $r; exit}}' ./download/stations.csv)
-	latitude=$(awk -F, -v c=${col_stnid} -v s="${stnid}" -v r=${col_lat} '{if($c==s) {print $r; exit}}' ./download/stations.csv)
-	longitude=$(awk -F, -v c=${col_stnid} -v s="${stnid}" -v r=${col_lon} '{if($c==s) {print $r; exit}}' ./download/stations.csv)
-	altitude=$(awk -F, -v c=${col_stnid} -v s="${stnid}" -v r=${col_elev} '{if($c==s) {print $r; exit}}' ./download/stations.csv)
+	stnname=$(awk -F, -v c=${col_stnid} -v s="${stnid}" -v r=${col_name} '{if($c==s) {print $r; exit}}' ./download/stations.csv.mod | sed 's/__/, /g' | tr -d '\"')
+	latitude=$(awk -F, -v c=${col_stnid} -v s="${stnid}" -v r=${col_lat} '{if($c==s) {print $r; exit}}' ./download/stations.csv.mod)
+	longitude=$(awk -F, -v c=${col_stnid} -v s="${stnid}" -v r=${col_lon} '{if($c==s) {print $r; exit}}' ./download/stations.csv.mod)
+	altitude=$(awk -F, -v c=${col_stnid} -v s="${stnid}" -v r=${col_elev} '{if($c==s) {print $r; exit}}' ./download/stations.csv.mod)
 
 	col_date=$(head -1 ./download/${stnid}.csv | awk -F, '{for(i=1; i<=NF; i++) {if($i=="measure_date") {print i; exit}}}')
 	if [ "${stnid}" == "WFJ2" ]; then
@@ -51,3 +62,5 @@ do
 	
 	rm ./download/io.ini
 done
+
+rm ./download/stations.csv.mod
