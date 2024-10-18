@@ -74,7 +74,8 @@ do
 	# Obtain some more metadata
 	if (( ${make_meta_data_table} )); then
 		warning_region=$(curl -p -s "https://aws.slf.ch/api/warningregion/sector/findByLocWGS84?lat=${latitude}&lon=${longitude}&date=$(date +"%Y-%m-%d")" | jq '.sector_id' | tr -d '\"')
-		drift_stnid=$(jq '.[] | select(.station_code == "'${stnid}'") | .config.drift_station_code' ./download/verification.json)
+		if [ -z "${warning_region}" ]; then warning_region="null"; fi
+		drift_stnid=$(jq '.[] | select(.station_code == "'${stnid}'") | .config.drift_station_code' ./download/verification.json | tr -d '\"')
 		if [ -z "${drift_stnid}" ]; then drift_stnid="null"; fi
 		windscaling=$(jq '.[] | select(.station_code == "'${stnid}'") | .config.wind_scaling_factor' ./download/verification.json)
 		if [ -z "${windscaling}" ]; then windscaling="1.0"; fi
