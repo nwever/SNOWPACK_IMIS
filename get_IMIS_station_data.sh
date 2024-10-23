@@ -50,7 +50,7 @@ do
 	echo "[INPUT]" > ${inifile}
 	echo "COORDSYS = CH1903" >> ${inifile}
 	echo "COORDPARAM = NULL" >> ${inifile}
-	echo "TIME_ZONE = 1" >> ${inifile}
+	echo "TIME_ZONE = 0" >> ${inifile}
 	echo "METEO = CSV" >> ${inifile}
 	echo "METEOPATH = ./download/" >> ${inifile}
 	echo "STATION1 = ${stnid}.csv" >> ${inifile}
@@ -67,11 +67,11 @@ do
 	echo "[OUTPUT]" >> ${inifile}
 	echo "COORDSYS = CH1903" >> ${inifile}
 	echo "COORDPARAM = NULL" >> ${inifile}
-	echo "TIME_ZONE = 1" >> ${inifile}
+	echo "TIME_ZONE = 0" >> ${inifile}
 	echo "METEO = SMET" >> ${inifile}
 	echo "METEOPATH = ./smet/" >> ${inifile}
 
-	meteoio_timeseries -c ./download/io.ini -b ${startTime} -e ${endTime}
+	meteoio_timeseries -c ./download/io.ini -b ${startTime} -e ${endTime} -s 30
 
 	# Obtain some more metadata
 	if (( ${make_meta_data_table} )); then
