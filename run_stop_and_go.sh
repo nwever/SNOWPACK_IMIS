@@ -1,12 +1,18 @@
 #!/bin/bash
 
-# Setttings
+#
+# --- SETTINGS ---
+#
 begin_date="2023-09-01"		# start time of simulation leading up to stop&go
 start_date="2023-09-02"		# start date stop&go simulation (should not be identical to begin_date)
 end_date="2024-06-01"		# end date stop&go simulation
 interval=1800			# in seconds, only integers possible
 remove_meteo_before=900		# 0: do not alter past meteo data in InputEditing block       >0: delete meteo data ${remove_meteo_before} seconds before timestep
 remove_meteo_after=1		# 0: do not alter future meteo data in InputEditing block     1: delete future meteo data by using InputEditing
+
+#
+# --- END OF SETTINGS ---
+#
 stn=$1
 
 if [ -z "${stn}" ]; then
@@ -21,7 +27,7 @@ current_date=$(date -d "${start_date}" +%s)
 end_date_seconds=$(date -d "${end_date}" +%s)
 
 # Find SNOWPACK command to base simulation on
-snowpack_cl=$(fgrep ${stn} to_exec.lst | awk -F\&\& '{print $(NF-1)}')
+snowpack_cl=$(fgrep ${stn} to_exec.lst | awk -F\&\& '{print $1}')
 
 n=0
 while [ "$current_date" -le "$end_date_seconds" ]; do
@@ -65,11 +71,13 @@ while [ "$current_date" -le "$end_date_seconds" ]; do
 	# 4) Make sure to specify the -r restart option
 	# 5) Append to the logfile (>>)
 	to_exec=$(echo ${snowpack_cl} | awk -v n=${n} -v b=${begin_date} -v d=${d} -v inifile=${inifile_add} '{for(i=1; i<=NF; i++) {if(i>1) {printf " "}; if($i=="-b") {if(n==0) {printf("-b %s", b)}; i++} else if($i=="-e") {printf("-e %s", d); i++} else if($i=="-c" && n>0) {printf("-c %s", inifile); i++} else if($i==">" && n>0) {printf "-r >>"} else {printf "%s", $i}}}')
+	# Print progress on screen
 	if (( ${n} > 0 )); then
 		echo "Running stop&go for ${stn} up to ${d}"
 	else
 		echo "Running for ${stn} from ${begin_date} up to ${d}"
 	fi
+	# Execute simulation
 	eval ${to_exec}
 
 	# Advance the current_date to the next_date
