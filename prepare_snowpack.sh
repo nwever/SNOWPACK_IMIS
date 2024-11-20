@@ -1,10 +1,10 @@
 #
 # --- SETTINGS ---
 #
-startYear=2024		# Note that by definition, the season is denoted by the year it ends. Thus 2023 is season 2022-2023.
+startYear=2021		# startYear and endYear. Note that by definition, the season is denoted by the year it ends. Thus 2023 is season 2022-2023.
 endYear=2024
-soil=0
-
+soil=1			# 0: no soil, 1: soil
+TIMEOUT="timeout 3600"	# Leave empty for no timeout, 3600 means runtime limited to max 1 hour.
 
 #
 # --- END SETTINGS ---
@@ -146,7 +146,7 @@ do
 		# Note that per station, seasons need to be run sequentially, but multiple stations can be run in parallel
 		# Therefore, we keep each station on a single line and use && to continue the simulation with another season,
 		# when the previous season finished successfully
-		echo -n "snowpack -s ${stnid} -c ${inifile} -b ${startTime} -e ${endTime} > log/${stnid}_${yr}.log 2>&1 && " >> to_exec.lst
+		echo -n "${TIMEOUT} ~/src/slfsnowpack/usr/bin/snowpack -s ${stnid} -c ${inifile} -b ${startTime} -e ${endTime} > log/${stnid}_${yr}.log 2>&1 && " >> to_exec.lst
 	done
 	echo "echo ${stnid} finished." >> to_exec.lst
 done
