@@ -3,11 +3,11 @@
 #
 # --- SETTINGS ---
 #
-begin_date="2023-09-01"		# start time of simulation leading up to stop&go
-start_date="2023-09-02"		# start date stop&go simulation (should not be identical to begin_date)
-end_date="2024-06-01"		# end date stop&go simulation
+begin_date="2024-09-01"		# start time of simulation leading up to stop&go
+start_date="2024-09-02"		# start date stop&go simulation (should not be identical to begin_date)
+end_date="2024-10-10"		# end date stop&go simulation
 interval=1800			# in seconds, only integers possible
-remove_meteo_before=900		# 0: do not alter past meteo data in InputEditing block       >0: delete meteo data ${remove_meteo_before} seconds before timestep
+remove_meteo_before=172800		# 0: do not alter past meteo data in InputEditing block       >0: delete meteo data ${remove_meteo_before} seconds before timestep
 remove_meteo_after=1		# 0: do not alter future meteo data in InputEditing block     1: delete future meteo data by using InputEditing
 
 #
