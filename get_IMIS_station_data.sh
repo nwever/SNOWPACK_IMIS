@@ -53,7 +53,7 @@ do
 	echo "TIME_ZONE = 0" >> ${inifile}
 	echo "METEO = CSV" >> ${inifile}
 	echo "METEOPATH = ./download/" >> ${inifile}
-	echo "STATION1 = ${stnid}.csv" >> ${inifile}
+	echo "METEOFILE1 = ${stnid}.csv" >> ${inifile}
 	echo "POSITION1 = latlon ${latitude} ${longitude} ${altitude}" >> ${inifile}
 	echo "CSV1_NAME = ${stnname}" >> ${inifile}
 	echo "CSV1_ID = ${stnid}" >> ${inifile}
