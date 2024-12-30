@@ -1,9 +1,10 @@
 #
 # --- SETTINGS ---
 #
-startYear=2021		# startYear and endYear. Note that by definition, the season is denoted by the year it ends. Thus 2023 is season 2022-2023.
-endYear=2024
+startYear=2016		# startYear and endYear. Note that by definition, the season is denoted by the year it ends. Thus 2023 is season 2022-2023.
+endYear=2025
 soil=1			# 0: no soil, 1: soil
+drift_station=0		# 0: no drift stations, 1: use drift station setup
 TIMEOUT="timeout 3600"	# Leave empty for no timeout, 3600 means runtime limited to max 1 hour.
 
 #
@@ -110,17 +111,23 @@ do
 	longitude=$(grep -m1 longitude ${smetfile} | awk -F= '{gsub(/^[ \t]+/,"", $NF); print $NF}')
 	altitude=$(grep -m1 altitude ${smetfile} | awk -F= '{gsub(/^[ \t]+/,"", $NF); print $NF}')
 	profiledate=$(awk '{if(/\[DATA\]/) {getline; gsub(/^[ \t]+/,"", $1); print $1; exit}}' ${smetfile})
+	first_ts=${profiledate}
+	last_ts=$(tail -n 1 ${smetfile} | awk '{gsub(/^[ \t]+/,"", $1); print $1; exit}')
 
 	# Setup drift wind station
-	drift_station_code=$(awk '{if($1=="'${stnid}'") {print $7}}' station_meta.txt)
-	wind_scaling_factor=$(awk '{if($1=="'${stnid}'") {print $8}}' station_meta.txt)
-	if [ "${drift_station_code}" == "null" ]; then
-		drift_station_code=""
-	else
-		if [ ! -e "./smet/${drift_station_code}.smet" ]; then
-			echo "WARNING: data for drift wind station not found (${drift_station_code}.smet)!"
+	if (( ${drift_station} )); then
+		drift_station_code=$(awk '{if($1=="'${stnid}'") {print $7}}' station_meta.txt)
+		wind_scaling_factor=$(awk '{if($1=="'${stnid}'") {print $8}}' station_meta.txt)
+		if [ "${drift_station_code}" == "null" ]; then
 			drift_station_code=""
+		else
+			if [ ! -e "./smet/${drift_station_code}.smet" ]; then
+				echo "WARNING: data for drift wind station not found (${drift_station_code}.smet)!"
+				drift_station_code=""
+			fi
 		fi
+	else
+		drift_station_code=""
 	fi
 
 	# Flat field
@@ -143,10 +150,21 @@ do
 		let yr=${yr1}-1
 		startTime="${yr}-09-01T00:00:00"
 		endTime="${yr1}-09-01T00:00:00"
+		if [[ "${startTime}" < "${first_ts}" ]]; then
+			echo "Insufficient data available for ${yr} - ${yr1} for stn ${stn} (condition 1)"
+			continue
+		fi
+		if [[ "${endTime}" > "${last_ts}" ]]; then
+			endTime=${last_ts}
+		fi
+		if [[ "${endTime}" < "${startTime}" ]]; then
+			echo "Insufficient data available for ${yr} - ${yr1} for stn ${stn} (condition 2)"
+			continue
+		fi
 		# Note that per station, seasons need to be run sequentially, but multiple stations can be run in parallel
 		# Therefore, we keep each station on a single line and use && to continue the simulation with another season,
 		# when the previous season finished successfully
-		echo -n "${TIMEOUT} ~/src/slfsnowpack/usr/bin/snowpack -s ${stnid} -c ${inifile} -b ${startTime} -e ${endTime} > log/${stnid}_${yr}.log 2>&1 && " >> to_exec.lst
+		echo -n "${TIMEOUT} snowpack -s ${stnid} -c ${inifile} -b ${startTime} -e ${endTime} > log/${stnid}_${yr}.log 2>&1 && " >> to_exec.lst
 	done
 	echo "echo ${stnid} finished." >> to_exec.lst
 done
