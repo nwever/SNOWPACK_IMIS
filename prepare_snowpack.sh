@@ -102,6 +102,11 @@ do
 		echo "${stnid} is not a SNOW_FLAT station"
 		continue
 	fi
+	if [[ "${stnid}" == *"*"* ]]; then
+		echo "${stnid} is a MCH station"
+		continue
+	fi
+
 	echo Preparing SNOWPACK setup for: ${stnid}
 	inifile="./cfgfiles/io_${stnid}.ini"
 	logfile="./log/${stnid}.log"
