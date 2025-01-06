@@ -1,8 +1,8 @@
 #
 # --- SETTINGS ---
 #
-startYear=2016		# startYear and endYear. Note that by definition, the season is denoted by the year it ends. Thus 2023 is season 2022-2023.
-endYear=2025
+startSeason=2016	# startSeason and endSeason. Note that by definition, the season is denoted by the year it ends. Thus 2023 is season 2022-2023.
+endSeason=2025
 soil=1			# 0: no soil, 1: soil
 drift_station=0		# 0: no drift stations, 1: use drift station setup
 TIMEOUT="timeout 3600"	# Leave empty for no timeout, 3600 means runtime limited to max 1 hour.
@@ -145,7 +145,7 @@ do
 	done
 	WriteIniFile
 
-	for yr1 in $(seq ${startYear} ${endYear})
+	for yr1 in $(seq ${startSeason} ${endSeason})
 	do
 		let yr=${yr1}-1
 		startTime="${yr}-09-01T00:00:00"
