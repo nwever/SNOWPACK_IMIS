@@ -1,5 +1,6 @@
 stnlst="WFJ2 SLF2"	# Leave empty to download all available stations listed in stations.csv
-make_meta_data_table=0
+get_live_data=0		# 0: only historical data, 1: also download live data
+make_meta_data_table=0	# Make meta data table (only possible within SLF network)
 
 mkdir -p ./download/
 
@@ -26,10 +27,15 @@ fi
 
 for stnid in ${stnlst}
 do
+	# Get historical data
 	curl -f -s -C  - -o ./download/${stnid}.csv https://measurement-data.slf.ch/imis/data/by_station/${stnid}.csv
 	if [ ! -e "./download/${stnid}.csv" ]; then
 		echo "Downloading ${stnid}.csv failed..."
 		continue
+	fi
+	if (( ${get_live_data} )); then
+		# Get live data
+		curl -s "https://measurement-api.slf.ch/public/api/imis/station/${stnid}/measurements" | jq --raw-output -r '([.[0] | keys_unsorted] | add | @csv), (.[] | [.[]] | @csv)' | tr -d '\"' > ./download/${stnid}_live.csv
 	fi
 
 	stnname=$(  awk -F, -v c=${col_stnid} -v s="${stnid}" -v r=${col_name} '{if($c==s) {print $r; exit}}' ./download/stations.csv.mod | sed 's/__/, /g' | tr -d '\"')
@@ -44,7 +50,12 @@ do
 	else
 		startTime=$(awk -F, -v r=${col_date} '(NR==2) {print substr($r,1,10) "T" substr($r,12,8); exit}' ./download/${stnid}.csv)
 	fi
-	endTime=$(tail -1 ./download/${stnid}.csv | awk -F, -v r=${col_date} '{print substr($r,1,10) "T" substr($r,12,8); exit}')
+	if (( ${get_live_data} )); then
+		col_date=$(head -1 ./download/${stnid}_live.csv | awk -F, '{for(i=1; i<=NF; i++) {if($i=="measure_date") {print i; exit}}}')
+		endTime=$(tail -1 ./download/${stnid}_live.csv | awk -F, -v r=${col_date} '{print substr($r,1,10) "T" substr($r,12,8); exit}')
+	else
+		endTime=$(tail -1 ./download/${stnid}.csv | awk -F, -v r=${col_date} '{print substr($r,1,10) "T" substr($r,12,8); exit}')
+	fi
 
 	inifile="./download/io.ini"
 	echo "[INPUT]" > ${inifile}
@@ -64,6 +75,21 @@ do
 	echo "CSV1_FIELDS		= " $(head -1 ./download/${stnid}.csv | awk -F, -v what="n" -f parse_fields.awk) >> ${inifile}
 	echo "CSV1_UNITS_OFFSET		= " $(head -1 ./download/${stnid}.csv | awk -F, -v what="o" -f parse_fields.awk) >> ${inifile}
 	echo "CSV1_UNITS_MULTIPLIER	= " $(head -1 ./download/${stnid}.csv | awk -F, -v what="m" -f parse_fields.awk) >> ${inifile}
+	if (( ${get_live_data} )); then
+		echo "METEOFILE2 = ${stnid}_live.csv" >> ${inifile}
+		echo "POSITION2 = latlon ${latitude} ${longitude} ${altitude}" >> ${inifile}
+		echo "CSV2_NAME = ${stnname}" >> ${inifile}
+		echo "CSV2_ID = ${stnid}" >> ${inifile}
+		echo "CSV2_COLUMNS_HEADERS = 1" >> ${inifile}
+		echo "CSV2_DATETIME_SPEC = YYYY-MM-DDTHH24:MI:SSZ" >> ${inifile}
+		echo "CSV2_DELIMITER  = ," >> ${inifile}
+		echo "CSV2_NODATA     = -999" >> ${inifile}
+		echo "CSV2_FIELDS		= " $(head -1 ./download/${stnid}_live.csv | awk -F, -v what="n" -f parse_fields.awk) >> ${inifile}
+		echo "CSV2_UNITS_OFFSET		= " $(head -1 ./download/${stnid}_live.csv | awk -F, -v what="o" -f parse_fields.awk) >> ${inifile}
+		echo "CSV2_UNITS_MULTIPLIER	= " $(head -1 ./download/${stnid}_live.csv | awk -F, -v what="m" -f parse_fields.awk) >> ${inifile}
+		echo "[InputEditing]" >> ${inifile}
+		echo "*::edit1 = AUTOMERGE" >> ${inifile}
+	fi
 	echo "[OUTPUT]" >> ${inifile}
 	echo "COORDSYS = CH1903" >> ${inifile}
 	echo "COORDPARAM = NULL" >> ${inifile}
