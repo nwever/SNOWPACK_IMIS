@@ -47,7 +47,6 @@ function WriteSnoFile {
 	echo "CanopyHeight = 0" >> ${snofile}
 	echo "CanopyLeafAreaIndex = 0" >> ${snofile}
 	echo "CanopyDirectThroughfall = 1" >> ${snofile}
-	echo "WindScalingFactor = 0" >> ${snofile}
 	echo "ErosionLevel = 0" >> ${snofile}
 	echo "TimeCountDeltaHS = 0" >> ${snofile}
 	echo "fields = timestamp Layer_Thick T Vol_Frac_I Vol_Frac_W Vol_Frac_V Vol_Frac_S Rho_S Conduc_S HeatCapac_S rg rb dd sp mk mass_hoar ne CDot metamo" >> ${snofile}
