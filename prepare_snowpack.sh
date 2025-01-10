@@ -65,11 +65,11 @@ function WriteSnoFile {
 function WriteIniFile {
 	echo "IMPORT_BEFORE		= ./io_base.ini" > ${inifile}
 	echo "[INPUT]" >> ${inifile}
-	echo "STATION1			= ${stnid}" >> ${inifile}
+	echo "METEOFILE1		= ${stnid}" >> ${inifile}
 	# Settings to include the drift wind station
 	if [ ! -z ${drift_station_code} ]; then
 		# Insert the drift wind station
-		echo "STATION2			= ${drift_station_code}" >> ${inifile}
+		echo "METEOFILE2		= ${drift_station_code}" >> ${inifile}
 		echo "[InputEditing]" >> ${inifile}
 		echo "${drift_station_code}::edit1         = KEEP" >> ${inifile}
 		echo "${drift_station_code}::arg1::params  = VW" >> ${inifile}

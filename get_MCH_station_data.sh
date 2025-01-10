@@ -19,7 +19,7 @@ n=0
 for stn in "*ATT1" "*CMA1" "*DIA1" "*EGH1" "*GOR1" "*MTR1" "*NAS1" "*WFJ1" "*PMA1" "*TIT1" "*WFJ1"
 do
 	let n=${n}+1
-	echo "STATION${n} = SMN::${stn}" >> ${inifile}
+	echo "METEOFILE${n} = SMN::${stn}" >> ${inifile}
 done
 
 # Determine first and last time stamps in the smet files
