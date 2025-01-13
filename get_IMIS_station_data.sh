@@ -1,10 +1,28 @@
+# Note: invoke with "bash get_IMIS_station_data.sh full" to merge existing processed data as well. This is practical, since live data doesn't always follow directly on historical data.
+# This can result in data gaps, that can be filled at a later stage when the historical data gets updated on the SLF server. Providing "full" as command line parameter merges the 3 data sources:
+# (1) processed data in the ./smet/ folder, (2) downloaded historical data and (3) downloaded live data.
+#
+# SETTINGS
+#
 stnlst="WFJ2 SLF2"	# Leave empty to download all available stations listed in stations.csv
 get_live_data=0		# 0: only historical data, 1: also download live data
 					# Note: downloading live data implies an update. This means that it only downloads historical data, if there is no processed file yet, or if the last timestep in the processed file
 					#       is from before the first time step in the live data. Otherwise, it will only download live data, and append to the existing processed file
 make_meta_data_table=0	# Make meta data table (only possible within SLF network)
+#
+# END SETTINGS
+#
 
+# Check for command line option
+if [[ "${1,,}" == "full" ]]; then
+	fullmergeupdate=1
+else
+	fullmergeupdate=0
+fi
+
+# Make sure required directory structure exists
 mkdir -p ./download/
+mkdir -p ./smet/
 
 if (( ${make_meta_data_table} )); then
 	echo "#station_code lat lon elevation type warning_region drift_station_code wind_scaling_factor slope exposition" > station_meta.txt
@@ -52,6 +70,9 @@ do
 	fi
 
 	# Get historical data
+	if (( ${fullmergeupdate} )); then
+		get_historical_data=1
+	fi
 	if (( ${get_historical_data} )); then
 		curl -f -s -o ./download/${stnid}.csv https://measurement-data.slf.ch/imis/data/by_station/${stnid}.csv
 		if [ ! -e "./download/${stnid}.csv" ]; then
@@ -101,6 +122,7 @@ do
 	echo "METEO = CSV" >> ${inifile}
 	echo "METEOPATH = ./download/" >> ${inifile}
 	if (( ${get_historical_data} )); then
+		echo "[INPUT]" >> ${inifile}
 		echo "METEOFILE1 = ${stnid}.csv" >> ${inifile}
 		echo "POSITION1 = latlon ${latitude} ${longitude} ${altitude}" >> ${inifile}
 		echo "CSV1_NAME = ${stnname}" >> ${inifile}
@@ -114,6 +136,7 @@ do
 		echo "CSV1_UNITS_MULTIPLIER	= " $(head -1 ./download/${stnid}.csv | awk -F, -v what="m" -f parse_fields.awk) >> ${inifile}
 	fi
 	if (( ${get_live_data} )); then
+		echo "[INPUT]" >> ${inifile}
 		echo "METEOFILE2 = ${stnid}_live.csv" >> ${inifile}
 		echo "POSITION2 = latlon ${latitude} ${longitude} ${altitude}" >> ${inifile}
 		echo "CSV2_NAME = ${stnname}" >> ${inifile}
@@ -142,13 +165,38 @@ do
 			done
 		fi
 	fi
+	if (( ${fullmergeupdate} )); then
+		if [ -e "./smet/${stnid}.smet" ]; then
+			nodata_val=$(fgrep -m 1 nodata ./smet/${stnid}.smet | awk -F\= '{print 1.*$NF}')
+			fgrep -m 1 fields ./smet/${stnid}.smet | awk -F\=\  '{print $NF}' > ./download/${stnid}_existing.csv.tmp
+			sed -n '/\[DATA\]/,$p' ./smet/${stnid}.smet | sed '1d' >> ./download/${stnid}_existing.csv.tmp
+			echo "[INPUT]" >> ${inifile}
+			echo "METEOFILE3 = ${stnid}_existing.csv.tmp" >> ${inifile}
+			echo "POSITION3 = latlon ${latitude} ${longitude} ${altitude}" >> ${inifile}
+			echo "CSV3_NAME = ${stnname}" >> ${inifile}
+			echo "CSV3_ID = ${stnid}" >> ${inifile}
+			echo "CSV3_COLUMNS_HEADERS = 1" >> ${inifile}
+			echo "CSV3_DATETIME_SPEC = YYYY-MM-DDTHH24:MI:SS" >> ${inifile}
+			echo "CSV3_DELIMITER  = SPACE" >> ${inifile}
+			echo "CSV3_NODATA     = ${nodata_val}" >> ${inifile}
+			echo "CSV3_FIELDS		= " $(head -1 ./download/${stnid}_existing.csv.tmp) >> ${inifile}
+			echo "[InputEditing]" >> ${inifile}
+			echo "*::edit1 = AUTOMERGE" >> ${inifile}
+		else
+			echo "[WARNING] ./smet/${stnid}.smet does not exist, cannot do full merge update..."
+		fi
+	fi
 	echo "[OUTPUT]" >> ${inifile}
 	echo "COORDSYS = CH1903" >> ${inifile}
 	echo "COORDPARAM = NULL" >> ${inifile}
 	echo "TIME_ZONE = 0" >> ${inifile}
 	echo "METEO = SMET" >> ${inifile}
 	echo "METEOPATH = ./smet/" >> ${inifile}
-	echo "SMET_WRITEMODE = APPEND" >> ${inifile}
+	if (( ${fullmergeupdate} )); then
+		echo "SMET_WRITEMODE = OVERWRITE" >> ${inifile}
+	else
+		echo "SMET_WRITEMODE = APPEND" >> ${inifile}
+	fi
 
 	# Run the data extraction
 	meteoio_timeseries -c ./download/io.ini -b ${startTime} -e ${endTime} -s 30
@@ -178,6 +226,9 @@ do
 
 	# Cleanup
 	rm ./download/io.ini
+	if (( ${fullmergeupdate} )); then
+		rm ./download/${stnid}_existing.csv.tmp
+	fi
 done
 
 # Cleanup
