@@ -48,15 +48,23 @@ fi
 for stnid in ${stnlst}
 do
 	if (( ${get_live_data} )); then
-		# Get live data
-		curl -s "https://measurement-api.slf.ch/public/api/imis/station/${stnid}/measurements" | jq --raw-output -r '([.[0] | keys_unsorted] | add | @csv), (.[] | [.[]] | @csv)' | tr -d '\"' > ./download/${stnid}_live.csv
-		ts1=$(head -2 ./download/${stnid}_live.csv | tail -1 | awk -F, '{print(substr($2,1,19))}')	# First time step in live data
+		# Get live data. If live data is available, ts1 contains the first time step of the live data. Otherwise, ts1 becomes an empty string.
+		response=$(curl -s "https://measurement-api.slf.ch/public/api/imis/station/${stnid}/measurements")
+		if echo "$response" | jq -e 'type == "array"' > /dev/null; then
+			echo "$response" | jq --raw-output -r '([.[0] | keys_unsorted] | add | @csv), (.[] | [.[]] | @csv)' | tr -d '\"' > ./download/${stnid}_live.csv
+			ts1=$(head -2 ./download/${stnid}_live.csv | tail -1 | awk -F, '{print(substr($2,1,19))}')	# First time step in live data
+		else
+			ts1=""
+			if [ "$(echo "$response" | jq -r '.status')" -ne 404 ] && [ "$(echo "$response" | jq -r '.status')" -ne 400 ]; then
+				echo "Unknown API response ...."
+			fi
+		fi
 		if [ ! -e "./smet/${stnid}.smet" ]; then
 			# If there is no processed data already, download historical data
 			get_historical_data=1
 		else
 			ts0=$(tail -1 ./smet/${stnid}.smet | awk '{print $1}')	# Last time step in processed data
-			if [[ "${ts1}" > "${ts0}" ]]; then
+			if [[ -n "${ts1}" ]] && [[ "${ts1}" > "${ts0}" ]]; then
 				# If the first time step from the live data is later than the last time step in the already processed data, then there might be a data gap. Get historical data again.
 				get_historical_data=1
 			else
@@ -102,7 +110,7 @@ do
 		startTime=""
 	fi
 	# Get end time
-	if (( ${get_live_data} )); then
+	if [[ -n "${ts1}" ]]; then
 		col_date=$(head -1 ./download/${stnid}_live.csv | awk -F, '{for(i=1; i<=NF; i++) {if($i=="measure_date") {print i; exit}}}')
 		endTime=$(tail -1 ./download/${stnid}_live.csv | awk -F, -v r=${col_date} '{print substr($r,1,10) "T" substr($r,12,8); exit}')
 		if [ -z "${startTime}" ]; then
@@ -135,7 +143,7 @@ do
 		echo "CSV1_UNITS_OFFSET		= " $(head -1 ./download/${stnid}.csv | awk -F, -v what="o" -f parse_fields.awk) >> ${inifile}
 		echo "CSV1_UNITS_MULTIPLIER	= " $(head -1 ./download/${stnid}.csv | awk -F, -v what="m" -f parse_fields.awk) >> ${inifile}
 	fi
-	if (( ${get_live_data} )); then
+	if [[ -n "${ts1}" ]]; then
 		echo "[INPUT]" >> ${inifile}
 		echo "METEOFILE2 = ${stnid}_live.csv" >> ${inifile}
 		echo "POSITION2 = latlon ${latitude} ${longitude} ${altitude}" >> ${inifile}
@@ -199,7 +207,9 @@ do
 	fi
 
 	# Run the data extraction
-	meteoio_timeseries -c ./download/io.ini -b ${startTime} -e ${endTime} -s 30
+	if [[ -n "${ts1}" ]] || (( ${get_historical_data} )); then
+		meteoio_timeseries -c ./download/io.ini -b ${startTime} -e ${endTime} -s 30
+	fi
 
 	# Obtain some more metadata
 	if (( ${make_meta_data_table} )); then
@@ -219,7 +229,7 @@ do
 		echo ${stnid} ${latitude} ${longitude} ${altitude} ${type} ${warning_region} ${drift_stnid} ${windscaling} ${slope} ${exp} >> station_meta.txt
 	fi
 
-	if (( ${get_live_data} )); then
+	if [[ -n "${ts1}" ]]; then
 		# A fake nodata value can have been inserted. Correct those cases.
 		sed -i 's/-999999.000/-999/g' ./smet/${stnid}.smet
 	fi
