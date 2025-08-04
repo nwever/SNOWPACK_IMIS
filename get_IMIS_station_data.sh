@@ -82,7 +82,13 @@ do
 		get_historical_data=1
 	fi
 	if (( ${get_historical_data} )); then
-		curl -f -s -o ./download/${stnid}.csv https://measurement-data.slf.ch/imis/data/by_station/${stnid}.csv
+		if [ -n "${ts1}" ]; then
+			# If the first time step from the live data (ts1) is known, only retain historical data up to ts1
+			curl -f -s https://measurement-data.slf.ch/imis/data/by_station/${stnid}.csv | awk -F, -v ts1=${ts1} '{ts=sprintf("%sT%s", substr($2,1,10), substr($2,12,8)); if(NR==1 || ts<ts1) {print}}' > ./download/${stnid}.csv
+		else
+			# Just download
+			curl -f -s -o ./download/${stnid}.csv https://measurement-data.slf.ch/imis/data/by_station/${stnid}.csv
+		fi
 		if [ ! -e "./download/${stnid}.csv" ]; then
 			echo "Downloading ${stnid}.csv failed..."
 			continue
