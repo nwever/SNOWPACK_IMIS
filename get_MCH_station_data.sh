@@ -1,6 +1,12 @@
 # Download MCH stations required to run SNOWPACK
 # Requires DBO plugin, only works from within SLF network
 
+fullpath_meteoio_timeseries=$(which meteoio_timeseries)
+if [[ -z "${fullpath_meteoio_timeseries}" ]]; then
+	echo "ERROR: cannot find meteoio_timeseries binary. Make sure \$PATH is set correctly to contain a path to the meteoio_timeseries binary." >&2
+	exit 1
+fi
+
 # Construct ini file
 inifile="io_mch.ini"
 echo "BUFFER_SIZE = 370" > ${inifile}
@@ -28,6 +34,6 @@ endTime=$(for f in smet/*; do tac ${f} | awk '{print $1; exit}'; done | sort -nr
 
 # Use meteoio_timeseries to obtain the data
 echo "Getting data from ${startTime} to ${endTime}..."
-meteoio_timeseries -c ${inifile} -b ${startTime} -e ${endTime} -s 30
+${fullpath_meteoio_timeseries} -c ${inifile} -b ${startTime} -e ${endTime} -s 30
 
 rm ${inifile}

@@ -13,6 +13,12 @@ make_meta_data_table=0	# Make meta data table (only possible within SLF network)
 # END SETTINGS
 #
 
+fullpath_meteoio_timeseries=$(which meteoio_timeseries)
+if [[ -z "${fullpath_meteoio_timeseries}" ]]; then
+	echo "ERROR: cannot find meteoio_timeseries binary. Make sure \$PATH is set correctly to contain a path to the meteoio_timeseries binary." >&2
+	exit 1
+fi
+
 # Check for command line option
 if [[ "${1,,}" == "full" ]]; then
 	fullmergeupdate=1
@@ -214,7 +220,7 @@ do
 
 	# Run the data extraction
 	if [[ -n "${ts1}" ]] || (( ${get_historical_data} )); then
-		meteoio_timeseries -c ./download/io.ini -b ${startTime} -e ${endTime} -s 30
+		${fullpath_meteoio_timeseries} -c ./download/io.ini -b ${startTime} -e ${endTime} -s 30
 	fi
 
 	# Obtain some more metadata

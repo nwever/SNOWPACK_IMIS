@@ -12,6 +12,12 @@ TIMEOUT="timeout 3600"	# Leave empty for no timeout, 3600 means runtime limited 
 #
 
 
+# Check if snowpack can be found
+fullpath_snowpack=$(which snowpack)
+if [[ -z "${fullpath_snowpack}" ]]; then
+	echo "ERROR: cannot find snowpack binary. Make sure \$PATH is set correctly to contain a path to the snowpack binary." >&2
+	exit 1
+fi
 
 
 # Create required directories
@@ -168,7 +174,7 @@ do
 		# Note that per station, seasons need to be run sequentially, but multiple stations can be run in parallel
 		# Therefore, we keep each station on a single line and use && to continue the simulation with another season,
 		# when the previous season finished successfully
-		echo -n "${TIMEOUT} snowpack -s ${stnid} -c ${inifile} -b ${startTime} -e ${endTime} > log/${stnid}_${yr}.log 2>&1 && " >> to_exec.lst
+		echo -n "${TIMEOUT} ${fullpath_snowpack} -s ${stnid} -c ${inifile} -b ${startTime} -e ${endTime} > log/${stnid}_${yr}.log 2>&1 && " >> to_exec.lst
 	done
 	echo "echo ${stnid} finished." >> to_exec.lst
 done
