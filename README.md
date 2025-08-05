@@ -1,5 +1,7 @@
 # SNOWPACK_IMIS
-Workflow to run SNOWPACK on IMIS stations
+
+Workflow to run SNOWPACK on IMIS stations. The aim of this repository is to set up simulations that mimic closely the operational setup used at the [WSL Institute for Snow and Avalanche Research SLF](https://www.slf.ch) for the avalanche warning service.
+
 
 ## Requirements
 1. Tested on Ubuntu 24.04
@@ -22,6 +24,7 @@ The Swiss setup uses some station data from [MeteoSwiss](https://meteoswiss.ch).
 
 3. Run the script: `bash get_MCH_station_data.sh`: Note that this can currently only be done from within the SLF network. However, all MeteoSwiss data is open-access. So in the nearby future, this script will be rewritten to obtain the MeteoSwiss station data directly from MeteoSwiss.
 
+
 ## Setup SNOWPACK simulations
 
 The script `prepare_snowpack.sh` can be used to setup the SNOWPACK simulations. It generates initial `sno` files, and configuration files.
@@ -36,10 +39,11 @@ TIMEOUT="timeout 3600"  # Leave empty for no timeout, 3600 means runtime limited
 ```
 
 Notes:
-- Since this setup aims to mimick the operational Swiss setup, by default 4 virtual slopes are configured (a N, E, S, and W-facing, 38&deg;).
+- Since this setup aims to mimic the operational Swiss setup, by default 4 virtual slopes are configured (a N, E, S, and W-facing, 38&deg;).
 - The simulations are split by year, with the following year continuing from the output `sno` file from the previous year. The simulations run from September 1 - September 1 in the following year.
 - The script does some basic checking if meteo data is available. If no meteo data is available from before 1 September of a specific year, that year is skipped. Also if the end date of the available meteo data is before September 1 of a specific year, that year is skipped.
 - The script produces a list `to_run.lst` with the SNOWPACK simulations set up for one specific station per line.
+
 
 ## Run SNOWPACK
 Either in serial:
@@ -51,3 +55,17 @@ or in parallel:
 
 ## Checking the simulations
 To do some basic checking of the status of the simulations, the script `check_simulations.sh` can be used. It checkes if the line `FINISHED running SLF RESEARCH Snowpack Model` is present in the log file.
+
+
+## Stop-and-go simulations
+In an operational context, stimulations are generally run in stop-and-go mode: when new meteo data comes in, the simulations advance up to the new meteo data. Since some bugs only show up in stop-and-go mode, a script `run_stop_and_go.sh` is available that mimics the stop-and-go setup. It runs over a specified interval, starting from the previous state file. Since some problems are related to the availability of meteo data, it is possible to configure the script to delete data from the "future" and from the "past".
+
+In the header of the script, the following can be configured:
+```
+begin_date="2024-09-01"		# start time of simulation leading up to stop&go
+start_date="2024-09-02"		# start date stop&go simulation (should not be identical to begin_date)
+end_date="2024-10-10"		# end date stop&go simulation
+interval=1800		     	# in seconds, only integers possible
+remove_meteo_before=172800	# 0: do not alter past meteo data in InputEditing block       >0: delete meteo data ${remove_meteo_before} seconds before timestep
+remove_meteo_after=1		# 0: do not alter future meteo data in InputEditing block     1: delete future meteo data by using InputEditing
+```
