@@ -96,10 +96,15 @@ function WriteIniFile {
 		echo "[SNOWPACK]" >> ${inifile}
 		echo "SNP_SOIL = TRUE" >> ${inifile}
 		echo "SOIL_FLUX = TRUE" >> ${inifile}
+		echo "[SNOWPACKADVANCED]" >> ${inifile}
+		echo "LB_COND_WATERFLUX = WATERTABLE" >> ${inifile}
+	else
+		echo "[SNOWPACKADVANCED]" >> ${inifile}
+		echo "LB_COND_WATERFLUX = FREEDRAINAGE" >> ${inifile}
 	fi
 }
 
-> to_exec.lst
+> to_run.lst
 for smetfile in ./smet/*
 do
 	stnid=$(grep -m1 station_id ${smetfile} | awk -F= '{gsub(/^[ \t]+/,"", $NF); print $NF}')
@@ -174,7 +179,7 @@ do
 		# Note that per station, seasons need to be run sequentially, but multiple stations can be run in parallel
 		# Therefore, we keep each station on a single line and use && to continue the simulation with another season,
 		# when the previous season finished successfully
-		echo -n "${TIMEOUT} ${fullpath_snowpack} -s ${stnid} -c ${inifile} -b ${startTime} -e ${endTime} > log/${stnid}_${yr}.log 2>&1 && " >> to_exec.lst
+		echo -n "${TIMEOUT} ${fullpath_snowpack} -s ${stnid} -c ${inifile} -b ${startTime} -e ${endTime} > log/${stnid}_${yr}.log 2>&1 && " >> to_run.lst
 	done
-	echo "echo ${stnid} finished." >> to_exec.lst
+	echo "echo ${stnid} finished." >> to_run.lst
 done
