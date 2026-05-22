@@ -6,9 +6,10 @@ Workflow to run SNOWPACK on IMIS stations. The aim of this repository is to set 
 ## Requirements
 1. Tested on Ubuntu 24.04.
 2. Requires GNU bash shell from GNU coreutils (for MacOS: `brew install coreutils`).
-3. [MeteoIO](https://meteoio.slf.ch) library, with a compiled `meteoio_timeseries` available in `$PATH`.
-4. [SNOWPACK](https://snowpack.slf.ch), with compiled `snowpack` available in `$PATH`.
-5. (optional) for parallelization, install [`GNU parallel`](https://www.gnu.org/software/parallel)
+3. Requires GNU awk as `awk` (for MacOS: `brew install gawk`). Make sure `awk` refers to a `gawk` binary.
+4. [MeteoIO](https://meteoio.slf.ch) library, with a compiled `meteoio_timeseries` available in `$PATH`.
+5. [SNOWPACK](https://snowpack.slf.ch), with compiled `snowpack` available in `$PATH`.
+6. (optional) for parallelization, install [`GNU parallel`](https://www.gnu.org/software/parallel)
 
 
 ## Downloading station data
